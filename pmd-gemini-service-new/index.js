@@ -129,9 +129,16 @@ app.post("/analyze", async (req, res) => {
         
         console.log(`🚀 Executing PMD on batch folder ${tmpDir} (${classes.length} files)`);
         
+        // Add categories to ensure rules are actually run
         const pmdOutput = await exec("sf", [
-            "scanner", "run", "--engine", "pmd", "--format", "json", "--target", tmpDir
+            "scanner", "run", 
+            "--engine", "pmd", 
+            "--format", "json", 
+            "--target", tmpDir,
+            "--category", "Design,Best Practices,Performance,Security,Error Prone"
         ]);
+        
+        console.log("📝 Raw PMD Output:", pmdOutput); // Debug log
         
         await fs.rm(tmpDir, { recursive: true, force: true });
         
@@ -263,6 +270,8 @@ function exec(bin, args) {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`🚀 PMD-Gemini Service running on port ${PORT}`);
+    console.log(`ℹ️  Service Version: 1.1 (Categories Enabled)`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
 });
 
 // Graceful shutdown

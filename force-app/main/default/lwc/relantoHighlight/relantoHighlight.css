@@ -1,0 +1,8 @@
+.color-box {
+    /* margin-top: 10px; */
+    display: flex; /* Enables flexbox */
+    justify-content: center; /* Horizontally centers the content */
+    align-items: center;
+    font-size: 35px;
+    width: 100%;
+}

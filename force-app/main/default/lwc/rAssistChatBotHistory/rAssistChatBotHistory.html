@@ -1,0 +1,116 @@
+<!--
+  @description       : 
+  @author            : AtifAhmedShariff
+  @group             : 
+  @last modified on  : 10-07-2025
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="history-sidebar">
+        <div>
+            <button class="new-thread-btn" onclick={handleThreadButtonClick}>
+                <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M14.7689 3.8451L12.7689 1.8451C12.6992 1.77518 12.6164 1.71971 12.5253 1.68185C12.4341 1.644 12.3364 1.62451 12.2377 1.62451C12.1389 1.62451 12.0412 1.644 11.95 1.68185C11.8589 1.71971 11.7761 1.77518 11.7064 1.8451L5.70641 7.8451C5.56625 7.98608 5.48779 8.17694 5.48828 8.37573V10.3757C5.48828 10.5746 5.5673 10.7654 5.70795 10.9061C5.8486 11.0467 6.03937 11.1257 6.23828 11.1257H8.23828C8.3368 11.1258 8.43437 11.1065 8.52542 11.0688C8.61646 11.0312 8.6992 10.976 8.76891 10.9064L14.7689 4.90635C14.8386 4.8367 14.894 4.75398 14.9317 4.66293C14.9694 4.57188 14.9889 4.47429 14.9889 4.37573C14.9889 4.27717 14.9694 4.17957 14.9317 4.08852C14.894 3.99747 14.8386 3.91476 14.7689 3.8451ZM12.2383 3.43823L13.1758 4.37573L12.4883 5.06323L11.5508 4.12573L12.2383 3.43823ZM7.92578 9.62573H6.98828V8.68823L10.4883 5.18823L11.4258 6.12573L7.92578 9.62573ZM14.4883 8.66135V13.3757C14.4883 13.7073 14.3566 14.0252 14.1222 14.2596C13.8877 14.494 13.5698 14.6257 13.2383 14.6257H3.23828C2.90676 14.6257 2.58882 14.494 2.3544 14.2596C2.11998 14.0252 1.98828 13.7073 1.98828 13.3757V3.37573C1.98828 3.04421 2.11998 2.72627 2.3544 2.49184C2.58882 2.25742 2.90676 2.12573 3.23828 2.12573H7.95266C8.15157 2.12573 8.34233 2.20475 8.48299 2.3454C8.62364 2.48605 8.70266 2.67682 8.70266 2.87573C8.70266 3.07464 8.62364 3.26541 8.48299 3.40606C8.34233 3.54671 8.15157 3.62573 7.95266 3.62573H3.48828V13.1257H12.9883V8.66135C12.9883 8.46244 13.0673 8.27168 13.208 8.13102C13.3486 7.99037 13.5394 7.91135 13.7383 7.91135C13.9372 7.91135 14.128 7.99037 14.2686 8.13102C14.4093 8.27168 14.4883 8.46244 14.4883 8.66135Z"
+                        fill="#1D69CC" />
+                </svg>
+                New thread
+            </button>
+            <span style="flex:1"></span>
+            <button class="close-history" onclick={handleClose}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                        d="M17.0303 6.96967C17.3232 7.26256 17.3232 7.73744 17.0303 8.03033L8.03033 17.0303C7.73744 17.3232 7.26256 17.3232 6.96967 17.0303C6.67678 16.7374 6.67678 16.2626 6.96967 15.9697L15.9697 6.96967C16.2626 6.67678 16.7374 6.67678 17.0303 6.96967Z"
+                        fill="#656C75" />
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                        d="M6.96967 6.96967C7.26256 6.67678 7.73744 6.67678 8.03033 6.96967L17.0303 15.9697C17.3232 16.2626 17.3232 16.7374 17.0303 17.0303C16.7374 17.3232 16.2626 17.3232 15.9697 17.0303L6.96967 8.03033C6.67678 7.73744 6.67678 7.26256 6.96967 6.96967Z"
+                        fill="#656C75" />
+                </svg>
+            </button>
+
+        </div>
+        <!-- <div class="history-header">
+
+             <h2 class="history-title">History</h2> 
+
+        </div> -->
+        <div class="history-content">
+            <!-- Recent Searches -->
+            <div class="history-section">
+                <!-- <h3>Recent Searches</h3> -->
+                <!-- <template if:true={chats}>
+                   <template for:each={chats} for:item="item">
+                        <button 
+                            key={item.id} 
+                            class="history-item" 
+                            data-id={item.id} 
+                            onclick={handleSelect}>
+                            {item.text}
+                        </button>
+                    </template>
+                </template> -->
+                 <template lwc:if={hasConversations}>
+                    <template for:each={groupedChats} for:item="group">
+                    <div key={group.date}>
+                        <div class="date-group">{group.date}</div>
+                        <template for:each={group.chats} for:item="chat">
+                            <template if:true={chat.isSelected}>
+                                <div key={chat.id} data-id={chat.id} class="history-item selected-chat"
+                                    onclick={handleSelect}>
+                                    {chat.title}
+                                </div>
+                            </template>
+                            <template if:false={chat.isSelected}>
+                                <div key={chat.id} data-id={chat.id} class="history-item" onclick={handleSelect}>
+                                    {chat.title}
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+                 </template>
+                <template if:false={recentSearches}>
+                    <p>No recent searches found.</p>
+                </template>
+            </div>
+
+
+
+
+            <!-- Monthly Sections
+            <template for:each={monthlyData} for:item="month" for:index="index">
+                <div key={month.title} class="month-section">
+                    <h3>{month.title}</h3>
+                    <template for:each={month.items} for:item="item">
+                        <button key={item.id} class="history-item" onclick={handleHistoryClick} data-id={item.id}>
+                            {item.text}
+                        </button>
+                    </template>
+                </div>
+            </template> -->
+        </div>
+        <!-- Help Links (fixed at bottom) -->
+        <div class="help-section fixed-bottom">
+            <h3>🌐 Help</h3>
+
+            <template if:true={helpLinks}>
+                <ul class="help-links">
+                    <template for:each={helpLinks} for:item="link">
+                        <li key={link.id} class="help-item">
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" class="help-link">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d={link.icon}></path>
+                                </svg>
+                                <span>{link.text}</span>
+                            </a>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+            <template if:false={helpLinks}>
+                <p>No help links available.</p>
+            </template>
+        </div>
+    </div>
+</template>

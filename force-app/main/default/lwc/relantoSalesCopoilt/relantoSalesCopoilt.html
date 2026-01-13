@@ -1,0 +1,53 @@
+<template>
+    <div class="demo-only demo-only--sizing slds-grid slds-wrap">
+        <div class="slds-size_3-of-12 slds-theme_default sidebar-history sidebar-container">
+            <div style='float:right;'>
+                <lightning-button-icon icon-name="action:edit_relationship"  style="float: right;"  title="new Chat" tooltip='New Chat'></lightning-button-icon>
+                <!-- <lightning-button variant="base" label="New Converstation" title="New Chat" icon-name="action:edit_ractionelationship" style="float: right;"></lightning-button> -->
+            </div>
+          
+           <template for:each={userChathistory} for:item="userHistory">
+                <div key={userHistory.id} class="chat-message">
+                      <a href="javascript:void(0);" onclick={handleUserHistoryClick} data-id={userHistory.id}>{userHistory.text}</a>
+         </div>
+            </template>
+        </div>
+        <div class="slds-size_9-of-12">
+           
+    <div class="chat-container">
+        <div class="logo-container slds-theme_default">
+            <img src={logoUrl} alt="Company Logo" class="company-logo" />
+        </div>
+        <div class="chat-history">
+            <template for:each={messages} for:item="message">
+                <div key={message.id} class="chat-message">
+                    <div class="user-message" if:true={message.isUser}>
+                        <p>{message.text}</p>
+                    </div>
+                    <div class="bot-message" if:false={message.isUser}>
+                        <p>{message.text}</p>
+                    </div>
+                </div>
+            </template>
+
+        </div>
+        <div class="chat-input">
+            <lightning-input
+                class="message-input"
+                label="Message In ChatGPT"
+                variant="label-hidden"
+                value={currentMessage}
+                onchange={handleInputChange}
+                onkeypress={handleKeyPress}
+            ></lightning-input>
+            <lightning-button
+                class="send-button"
+                label="Send"
+                variant="brand"
+                onclick={sendMessage}
+            ></lightning-button>
+        </div>
+    </div>
+        </div>
+    </div>
+</template>

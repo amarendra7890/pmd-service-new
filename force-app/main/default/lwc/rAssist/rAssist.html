@@ -1,0 +1,166 @@
+<template>
+    <!DOCTYPE html>
+<html lang="en">
+ 
+   <body>
+      <div class="sidebar">
+         <div class="hamburger-menu">
+            <span class="icon"><i class="fas fa-bars"></i></span>
+         </div>
+         <div class="menu">
+            <div class="chat-history-section">
+               <button class="new-chat-btn">+ New Chat</button>
+               <h4>Today</h4>
+               <ul>
+                  <li class="active">
+                     <span class="icon"><i class="fas fa-comment-alt"></i></span>
+                     <span>How is my incentive pay calculated?</span>
+                  </li>
+               </ul>
+            </div>
+            <div class="chat-history-section">
+               <h4>Yesterday</h4>
+               <ul>
+                  <li>
+                     <span class="icon"><i class="fas fa-comment-alt"></i></span>
+                     <span>How do I understand quota?</span>
+                  </li>
+               </ul>
+            </div>
+            <div class="chat-history-section">
+               <h4>Last Week</h4>
+               <ul>
+                  <li>
+                     <span class="icon"><i class="fas fa-comment-alt"></i></span>
+                     <span>How is the Payout calculated?</span>
+                  </li>
+               </ul>
+            </div>
+            <div class="chat-history-section">
+               <h4>Older</h4>
+               <ul>
+                  <li>
+                     <span class="icon"><i class="fas fa-comment-alt"></i></span>
+                     <span>Where do I find my report?</span>
+                  </li>
+               </ul>
+            </div>
+         </div>
+         <div class="settings">
+            <span class="icon"><i class="fas fa-cog"></i></span>
+            <span>Settings</span>
+         </div>
+      </div>
+      <div class="chat-container">
+         <div class="chat-header">
+            <div class="logo">
+               <img src="relanto-logo.png" alt="Relanto Logo">
+            </div>
+            <div class="user-info">
+               <span class="user-initials">AA</span>
+               <span class="version">Sales Copilot V 1.0 (12T)</span>
+            </div>
+         </div>
+         <div class="chat-content">
+            <!-- First Chat Message -->
+            <div class="chat-message">
+               <div class="avatar">AA</div>
+               <div class="message-content">
+                  <div class="question-container">
+                     <div class="question">How is my incentive pay calculated?</div>
+                     <div class="edit-icon">
+                        <span class="icon"><i class="fas fa-pen"></i></span>
+                     </div>
+                  </div>
+                  <div class="answer">
+                     <span class="icon"><i class="fas fa-sparkles"></i></span>Your incentive pay is based on your quota attainment and the weight of each plan element.
+                     <br>
+                     Here's the formula:
+                     <br>
+                     (Quota Attainment * Plan Element Weight * Active Days / Period Days) + Accelerators/Decelerators = Incentive Pay.
+                  </div>
+                  <table class="sales-table">
+                     <tr>
+                        <th>Element</th>
+                        <th>Weight</th>
+                        <th>Quota Attainment</th>
+                     </tr>
+                     <tr>
+                        <td>Sales</td>
+                        <td>50%</td>
+                        <td>100%</td>
+                     </tr>
+                     <tr>
+                        <td>Services</td>
+                        <td>30%</td>
+                        <td>80%</td>
+                     </tr>
+                     <tr>
+                        <td>Renewals</td>
+                        <td>20%</td>
+                        <td>90%</td>
+                     </tr>
+                  </table>
+                  <div class="actions">
+                     <span class="icon"><i class="fas fa-thumbs-up"></i></span>
+                     <span class="icon"><i class="fas fa-thumbs-down"></i></span>
+                     <span class="icon"><i class="fas fa-copy"></i></span>
+                  </div>
+               </div>
+            </div>
+            <!-- Second Chat Message -->
+            <div class="chat-message">
+               <div class="avatar">AA</div>
+               <div class="message-content">
+                  <div class="question-container">
+                     <div class="question">How is my incentive pay calculated?</div>
+                     <div class="edit-icon">
+                        <span class="icon"><i class="fas fa-pen"></i></span>
+                     </div>
+                  </div>
+                  <div class="answer">
+                     Quota is the sales target that you are expected to achieve within a specific period. 
+                     It can be based on revenue, number of units sold, or other measurable factors.
+                  </div>
+                  <div class="actions">
+                     <span class="icon"><i class="fas fa-thumbs-up"></i></span>
+                     <span class="icon"><i class="fas fa-thumbs-down"></i></span>
+                     <span class="icon"><i class="fas fa-copy"></i></span>
+                  </div>
+               </div>
+            </div>
+            <!-- Third Chat Message -->
+            <div class="chat-message">
+               <div class="avatar">AA</div>
+               <div class="message-content">
+                  <div class="question-container">
+                     <div class="question">How is my incentive pay calculated?</div>
+                     <div class="edit-icon">
+                        <span class="icon"><i class="fas fa-pen"></i></span>
+                     </div>
+                  </div>
+                  <div class="answer">
+                     The payout is determined by multiplying your commission rate with the sales revenue you've generated, 
+                     adjusted for any bonuses or penalties based on your performance metrics.
+                  </div>
+                  <div class="actions">
+                     <span class="icon"><i class="fas fa-thumbs-up"></i></span>
+                     <span class="icon"><i class="fas fa-thumbs-down"></i></span>
+                     <span class="icon"><i class="fas fa-copy"></i></span>
+                  </div>
+               </div>
+            </div>
+            <!-- Optional: Add more chat messages as needed -->
+         </div>
+         <!-- Chat Input Section -->
+         <div class="chat-input-section">
+            <input type="text" placeholder="Ask me anything...">
+            <button class="send-btn">Send</button>
+         </div>
+         <div class="chat-footer">
+            &copy; 2024 Sales Copilot. All rights reserved.
+         </div>
+      </div>
+   </body>
+</html>
+</template>

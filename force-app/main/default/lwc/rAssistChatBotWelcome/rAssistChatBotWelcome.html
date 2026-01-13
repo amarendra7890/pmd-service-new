@@ -1,0 +1,20 @@
+<!--
+  @description       : 
+  @author            : AtifAhmedShariff
+  @group             : 
+  @last modified on  : 10-07-2025
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+   <div class="welcome-screen">
+      <br />
+      <p class="welcome-subtitle">Hi, I'm R-ActioX. How can I help you today?</p>
+      <p class="welcome-description">Try asking me about your tasks, queries, or just chatting.</p>
+      <template for:each={queries} for:item="q">
+         <button key={q.id} class="query-button" onclick={handleClick} data-id={q.id}>{q.text}</button>
+      </template>
+      <div>
+         <!-- <a href="#" class="view-all-queries" onclick={viewAllQueries}>View All Queries</a> -->
+      </div>
+   </div>
+</template>

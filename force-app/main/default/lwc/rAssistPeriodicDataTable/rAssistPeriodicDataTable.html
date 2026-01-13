@@ -1,0 +1,61 @@
+<!--
+  @description       : 
+  @author            : AtifAhmedShariff
+  @group             : 
+  @last modified on  : 06-25-2025
+  @last modified by  : AtifAhmedShariff
+-->
+<template>
+    <div class="chatbot-table-container">
+        <table class="modern-table">
+            <thead class="modern-table-header">
+                <tr>
+                    <template for:each={pastColumns} for:item="column">
+                        <th key={column}>{column}</th>
+                    </template>
+
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={pastRows} for:item="row">
+                    <tr key={row.metric}>
+                        <td class="slds-text-body_small">
+                            <strong>{row.metric}</strong>
+                        </td>
+                        <template for:each={row.values} for:item="rowValue">
+                            <td key={rowValue}>{rowValue}</td>
+                        </template>
+                    </tr>
+                </template>
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="chatbot-table-container">
+
+        <table class="modern-table">
+            <thead class="modern-table-header">
+                <tr>
+                    <template for:each={currentColumns} for:item="column">
+                        <th key={column}>{column}</th>
+                    </template>
+
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={currentRows} for:item="row">
+                    <tr key={row.metric}>
+                        <td class="slds-text-body_small">
+                            <strong>{row.metric}</strong>
+                        </td>
+                        <template for:each={row.values} for:item="rowValue">
+                            <td key={rowValue}>{rowValue}</td>
+                        </template>
+                    </tr>
+                </template>
+
+            </tbody>
+        </table>
+    </div>
+</template>

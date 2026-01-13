@@ -1,0 +1,38 @@
+.chatbot-table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 10px;
+}
+
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modern-table th,
+.modern-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modern-table th.wrap-header {
+    white-space: normal;
+    word-break: break-word;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    background: #f1f3f4;
+}
+
+.modern-table tr:last-child td {
+    border-bottom: none;
+}
+
+.modern-table-header{
+    background-color: lightgray;
+}

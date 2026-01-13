@@ -1,0 +1,38 @@
+<!--
+  @description       : 
+  @author            : AtifAhmedShariff
+  @group             : 
+  @last modified on  : 06-25-2025
+  @last modified by  : AtifAhmedShariff
+-->
+<template>
+    <template if:true={isChatbotOpen}>
+        <section class={chatbotContainerClass}>
+            <div>
+                <div id="chatbotContainer" class={chatbotContainerClass}>
+                    <c-r-assist-chat-bot-header is-chatbot-open={isChatbotOpen} onopeninnew={openInNew} onrefresh={refreshChat}
+                        onclose={toggleChatbot} ontogglehistory={handleToggleHistory}>
+                    </c-r-assist-chat-bot-header>
+                    <div class="chatbot-content">
+                        <div style="max-height: 70vh;height:100%">
+                            <template if:true={isHistoryOpen}>
+                                 <div class="chatbot-dim-overlay"></div>
+                                <div class="">
+                                    <c-r-assist-chat-bot-history onclose={handleHistoryClose} onselecthistory={handleHistoryItem}
+                                        onnewchat={handleNewChatFromHistory}></c-r-assist-chat-bot-history>
+                                </div>
+                            </template>
+                            <div>
+                                <c-r-assist-chat-screen lwc:ref="chatScreen"></c-r-assist-chat-screen>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+        </section>
+    </template>
+</template>

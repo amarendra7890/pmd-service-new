@@ -1,0 +1,7 @@
+.resizable-container {
+    /* resize: both; */
+    overflow: auto;
+    min-width: 200px;
+    width: 100%;
+    max-width: 100%;
+}

@@ -1,0 +1,38 @@
+<!--
+  @description       : 
+  @author            : AtifAhmedShariff
+  @group             : 
+  @last modified on  : 06-25-2025
+  @last modified by  : AtifAhmedShariff
+-->
+<template>
+    <template if:false={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="medium" variant={loaderVariant}></lightning-spinner>
+    </template>
+    <template if:true={isLoading}>
+        <div
+            class="slds-p-around_small slds-grid slds-wrap slds-grid--vertical-align-center slds-grid--align-center chartHome">
+            <template if:true={showFieldOptions}>
+                <div class="hint-text">
+                    If the chart doesn't look right, select the correct fields to visualize your data:
+                </div>
+                <div class="slds-grid slds-gutters slds-p-bottom_small slds-wrap chart-config">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-combobox label="Label Field" value={labelField} options={fieldOptions}
+                            onchange={handleLabelChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-combobox label="Value Field" value={valueField} options={fieldOptions}
+                            onchange={handleValueChange}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </template>
+            <canvas class="barChart" lwc:dom="manual"></canvas>
+            <div if:false={isChartJsInitialized} class="slds-col--padded slds-size--1-of-1">
+                <lightning-spinner alternative-text="Loading" size="medium" variant={loaderVariant}></lightning-spinner>
+            </div>
+        </div>
+    </template>
+</template>

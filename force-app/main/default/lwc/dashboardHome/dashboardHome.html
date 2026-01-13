@@ -1,0 +1,179 @@
+<!-- dashboardHome.html - Fixed with single root element -->
+<template>
+    <div class={containerClass}>
+        <!-- <div class="theme-toggle-container">
+            <div class="toggle-label">
+                <template if:true={isDarkMode}>
+                    <lightning-icon icon-name="utility:daylight" size="small" alternative-text="Light Mode" class="toggle-icon"></lightning-icon>
+                </template>
+                <template if:false={isDarkMode}>
+                    <lightning-icon icon-name="utility:night" size="small" alternative-text="Dark Mode" class="toggle-icon"></lightning-icon>
+                </template>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" checked={isDarkMode} onchange={handleThemeToggle} />
+                <span class="slider round"></span>
+            </label>
+        </div> -->
+ 
+        <!-- Dashboard Header - 3 Column Layout -->
+        <div class="dashboard-header">
+            <c-user-info-card user-info={userInfo}></c-user-info-card>
+            <c-api-calls-card api-usage={apiUsage}></c-api-calls-card>
+            <c-quick-stats-card
+                apex-classes-data={apexClasses}
+                permissions-data={permissions}>
+            </c-quick-stats-card>
+        </div>
+
+        <!-- Outlook Card - Full Width -->
+        <div class="dashboard-content">
+            <c-outlook-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-outlook-card>
+        </div>
+ 
+ 
+        <!-- Jira Issues Card - Full Width -->
+        <div class="dashboard-content">
+            <c-jira-issues-card
+                show-refresh-button="true"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-jira-issues-card>
+        </div>
+        
+ 
+        <!-- PMD Code Analysis Card - Full Width -->
+        <div class="dashboard-content" style="height:400px">
+            <c-pmd-code-analysis-card></c-pmd-code-analysis-card>
+        </div>
+ 
+        
+
+        <!-- apex and lwc component - 2 Column Layout-->
+         <div class="dashboard-footer">
+             <c-apex-classes-card
+                apex-classes-data={apexClasses}
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-apex-classes-card>
+            <c-afd-lightning-component-info
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-afd-lightning-component-info>
+        </div>
+ 
+        <!-- Aura component and Custom setting Card -2 Column Layout-->
+        <div class="dashboard-footer">
+            <c-afd-aura-components-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-afd-aura-components-card>
+            <c-afd-custom-settings-info-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-afd-custom-settings-info-card>
+        </div>
+ 
+    
+         <!-- custom object and custom metadata Card - 2 Column Layout -->
+         <div class="dashboard-footer">
+            <c-custom-object-info-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-custom-object-info-card>
+            <c-custom-metadata-info-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-custom-metadata-info-card>
+        </div>
+ 
+        <!-- Permission Information andScheduled Jobs Card- 2 Column Layout -->
+        <div class="dashboard-footer">
+            <c-permissions-info-card
+                permissions-data={permissions}
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-permissions-info-card>
+             <c-scheduled-jobs-card
+                scheduled-jobs-data={scheduledJobs}
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-scheduled-jobs-card>
+        </div>
+
+        <!-- Scheduled Jobs Card - Full Width
+        <div class="dashboard-content">
+            <c-scheduled-jobs-card
+                scheduled-jobs-data={scheduledJobs}
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-scheduled-jobs-card>
+        </div> -->
+ 
+        <!-- GitHub Pull Requests Card - Full Width -->
+        <div class="dashboard-content">
+            <c-github-card
+                is-dark-mode-active={isDarkMode}
+                current-user-id={userInfo.Id}
+                dashboard-page-api-name="Home">
+            </c-github-card>
+        </div>
+
+        <!-- Documentation Card - Full Width -->
+        <div class="dashboard-content">
+            <c-documentation-card
+                current-user-id={userInfo.Id}
+                is-dark-mode-active={isDarkMode}
+                dashboard-page-api-name="Home"
+                onrefreshrequest={handleRefreshRequest}>
+            </c-documentation-card>
+        </div>
+
+        
+        <!-- Scroll to Top Button -->
+        <div class={scrollToTopClass} onclick={handleScrollToTop}>
+            <lightning-icon icon-name="utility:up" size="small" alternative-text="Scroll to top"></lightning-icon>
+        </div>
+ 
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <div class="spinner-container">
+                <div class="spinner"></div>
+            </div>
+        </template>
+ 
+        <!-- Error Display -->
+        <template if:true={error}>
+            <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                <span class="slds-assistive-text">Error</span>
+                <lightning-icon icon-name="utility:error" alternative-text="Error!" variant="inverse" size="small"></lightning-icon>
+                <div class="slds-notify__content">
+                    <h2 class="slds-text-heading_small">An error occurred:</h2>
+                    <p>{error}</p>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

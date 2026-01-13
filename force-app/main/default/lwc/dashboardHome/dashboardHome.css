@@ -1,0 +1,333 @@
+/* dashboardHome.css */
+:host {
+    /* Light Theme Variables */
+    --light-bg-gradient-start: #bcdbe3;
+    --light-bg-gradient-end: #99c9d7;
+    --light-card-bg: #ffffff;
+    --light-text-primary: #333333;
+    --light-text-secondary: #666666;
+    --light-border: #e0e0e0;
+    --light-shadow: rgba(0, 0, 0, 0.1);
+    
+    /* Dark Theme Variables */
+    --dark-bg-gradient-start: #2d2b55;
+    --dark-bg-gradient-end: #1a1a2e;
+    --dark-card-bg: #2d2d3a;
+    --dark-text-primary: #e0e0e0;
+    --dark-text-secondary: #a0a0a0;
+    --dark-border: #444455;
+    --dark-shadow: rgba(0, 0, 0, 0.3);
+    
+    /* Accent Colors */
+    --accent-purple: #7c69ef;
+    --accent-blue: #3498db;
+    --accent-green: #2ecc71;
+    --accent-orange: #f39c12;
+    --accent-red: #e74c3c;
+    
+    /* Status Colors */
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --error-color: #e74c3c;
+    --info-color: #3498db;
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    
+    /* Card Properties */
+    --card-border-radius: 0.75rem;
+    --card-padding: var(--spacing-md);
+    --card-shadow-definition: 0 4px 12px var(--light-shadow);
+    --card-shadow-hover-definition: 0 8px 16px var(--light-shadow);
+    
+    /* Transitions */
+    --transition-speed: 0.3s;
+
+    /* CURRENT THEME BRIDGE VARIABLES - Default to Light Theme values */
+    --current-bg-gradient-start: var(--light-bg-gradient-start);
+    --current-bg-gradient-end: var(--light-bg-gradient-end);
+    --current-card-bg: var(--light-card-bg);
+    --current-text-primary: var(--light-text-primary);
+    --current-text-secondary: var(--light-text-secondary);
+    --current-border: var(--light-border);
+    --current-card-shadow: var(--card-shadow-definition);
+    --current-card-shadow-hover: var(--card-shadow-hover-definition);
+
+    /* Specific themed elements - default to light */
+    --current-tabs-container-border: var(--light-border);
+    --current-tab-hover-bg: rgba(0, 0, 0, 0.05); /* For generic tab hover */
+    --current-table-border: var(--light-border);
+    --current-table-th-hover-bg: rgba(0, 0, 0, 0.05);
+    --current-user-details-p-color: var(--light-text-secondary);
+    --current-api-stat-label-color: var(--light-text-secondary);
+    --current-progress-container-bg: #e0e0e0;
+    --current-usage-percentage-color: var(--light-text-secondary);
+    --current-quick-stat-item-bg: rgba(124, 105, 239, 0.1);
+    --current-quick-stat-label-color: var(--light-text-secondary);
+    --current-permission-message-bg: rgba(243, 156, 18, 0.1);
+    --current-empty-state-color: var(--light-text-secondary);
+    --current-section-title-border: var(--light-border);
+    --current-my-job-card-bg: var(--light-card-bg);
+    --current-my-job-card-border: var(--light-border);
+    --current-coverage-bar-container-bg: #e0e0e0;
+    --current-permission-view-info-bg: rgba(0,0,0,0.03);
+    --current-tab-inactive-bg: #f0f0f0; /* More visible inactive tab bg */
+}
+
+.card-block-link {
+    display: block;
+    text-decoration: none; /* Remove underline */
+    color: inherit;         /* Inherit text color from parent */
+    height: 100%;           /* Fill the card height */
+    transition: color 0.3s ease; /* Smooth transition on color change */
+}
+
+.card-block-link:hover {
+    text-decoration: none;  /* Ensure no underline on hover */
+    color: #d9e2ed;         /* Optional: change color on hover */
+    cursor: pointer;        /* Indicate it's clickable */
+}
+
+
+/* Main Container */
+.dashboard-container {
+    min-height: 100vh;
+    padding: var(--spacing-md);
+    transition: background var(--transition-speed) ease-in-out, color var(--transition-speed) ease-in-out;
+    background: linear-gradient(135deg, var(--current-bg-gradient-start), var(--current-bg-gradient-end));
+    color: var(--current-text-primary);
+}
+
+.dark-theme {
+    --current-bg-gradient-start: var(--dark-bg-gradient-start);
+    --current-bg-gradient-end: var(--dark-bg-gradient-end);
+    --current-card-bg: var(--dark-card-bg);
+    --current-text-primary: var(--dark-text-primary);
+    --current-text-secondary: var(--dark-text-secondary);
+    --current-border: var(--dark-border);
+
+    --current-tabs-container-border: var(--dark-border);
+    --current-tab-hover-bg: rgba(255, 255, 255, 0.08); /* Dark theme tab hover */
+    --current-table-border: var(--dark-border);
+    --current-table-th-hover-bg: rgba(255, 255, 255, 0.05);
+    --current-user-details-p-color: var(--dark-text-secondary);
+    --current-api-stat-label-color: var(--dark-text-secondary);
+    --current-progress-container-bg: #444455;
+    --current-usage-percentage-color: var(--dark-text-secondary);
+    --current-quick-stat-item-bg: rgba(124, 105, 239, 0.2);
+    --current-quick-stat-label-color: var(--dark-text-secondary);
+    --current-permission-message-bg: rgba(243, 156, 18, 0.2);
+    --current-empty-state-color: var(--dark-text-secondary);
+    --current-section-title-border: var(--dark-border);
+    --current-my-job-card-bg: var(--dark-card-bg);
+    --current-my-job-card-border: var(--dark-border);
+    --current-coverage-bar-container-bg: #555;
+    --current-permission-view-info-bg: rgba(255,255,255,0.05);
+    --current-tab-inactive-bg: rgba(255,255,255,0.07); /* Dark theme inactive tab */
+}
+
+/* Dashboard Layout */
+.dashboard-header,
+.dashboard-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+    .dashboard-header,
+    .dashboard-footer {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .dashboard-header {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.dashboard-content {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Theme Toggle */
+.theme-toggle-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.toggle-label {
+    margin-right: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    color: var(--current-text-primary);
+}
+
+.toggle-icon {
+    --sds-c-icon-color-foreground-default: currentColor; 
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-purple);
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px var(--accent-purple);
+}
+
+input:checked + .slider:before {
+    transform: translateX(30px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Scroll to Top Button */
+.scroll-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: var(--current-card-bg);
+    border: 2px solid var(--accent-purple);
+    color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--current-card-shadow);
+    transition: all var(--transition-speed) ease;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+}
+
+.scroll-to-top.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.scroll-to-top:hover {
+    background: var(--accent-purple);
+    color: white;
+    box-shadow: var(--current-card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.scroll-to-top:active {
+    transform: translateY(0);
+}
+
+.scroll-to-top lightning-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+}
+
+/* Mobile responsiveness for scroll button */
+@media (max-width: 768px) {
+    .scroll-to-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+
+/* Loading Spinner */
+.spinner-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0,0,0,0.1); 
+    z-index: 9999;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(128, 128, 128, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--accent-purple);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.empty-state {
+    padding: var(--spacing-md);
+    text-align: center;
+    color: var(--current-empty-state-color);
+    font-style: italic;
+}
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--current-section-title-border);
+}
+
+::slotted(lightning-icon), lightning-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+}

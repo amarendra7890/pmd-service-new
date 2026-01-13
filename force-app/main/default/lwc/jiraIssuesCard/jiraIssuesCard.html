@@ -1,0 +1,585 @@
+<!-- jiraIssuesCard.html - Complete with Status/Priority Tabs -->
+<template>
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <img src={jiraIconUrl} alt="Jira" class="card-header-icon">
+                Jira Tasks
+            </h3>
+            <div class="header-actions">
+                <button class="create-issue-button" title="Create New Issue" onclick={handleCreateIssue}>
+                    <lightning-icon icon-name="utility:add" size="small"></lightning-icon>
+                    Create Task
+                </button>
+                <button if:true={showRefreshButton} class="refresh-button" title="Refresh Jira Issues" onclick={handleRefreshJira}>
+                    <lightning-icon icon-name="utility:refresh" size="small"></lightning-icon>
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-content">
+            <!-- View Toggle Tabs -->
+            <template if:false={isLoading}>
+                <template if:false={errorMessage}>
+                    <template if:false={hasNoIssuesToDisplay}>
+                        <div class="view-tabs-container">
+                            <button class={statusTabClass} onclick={handleStatusViewClick}>
+                                <lightning-icon icon-name="utility:kanban" size="x-small"></lightning-icon>
+                                Status View
+                            </button>
+                            <button class={priorityTabClass} onclick={handlePriorityViewClick}>
+                                <lightning-icon icon-name="utility:priority" size="x-small"></lightning-icon>
+                                Priority View
+                            </button>
+                        </div>
+                    </template>
+                </template>
+            </template>
+
+            <!-- Show spinner when loading -->
+            <template if:true={isLoading}>
+                <div class="slds-is-relative spinner-container-card-content">
+                    <lightning-spinner alternative-text="Loading Jira issues..." size="small"></lightning-spinner>
+                </div>
+            </template>
+            
+            <template if:false={isLoading}>
+                <template if:true={errorMessage}>
+                    <div class="slds-p-around_medium slds-text-color_error empty-state">
+                        <lightning-icon icon-name="utility:error" variant="error" size="small" class="slds-m-right_xx-small"></lightning-icon>
+                        Error loading Jira issues: {errorMessage}
+                    </div>
+                </template>
+                
+                <template if:false={errorMessage}>
+                    <template if:true={hasNoIssuesToDisplay}>
+                        <div class="empty-state slds-p-around_large">
+                            No Jira issues found matching your criteria.
+                            <button class="create-first-issue-button" onclick={handleCreateIssue}>
+                                Create your first task
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <template if:false={hasNoIssuesToDisplay}>
+                        <!-- STATUS VIEW -->
+                        <template if:true={isStatusView}>
+                            <div class="jira-columns-container">
+                                <!-- OPEN Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title OPEN">OPEN ({openIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={openIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <template if:true={issue.isOverdue}>
+                                                                <span class="tag-overdue">Overdue</span>
+                                                            </template>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={openIssues.length}>
+                                            <p class="no-issues-in-column">No open issues.</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- IN PROGRESS Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title IN_PROGRESS">IN PROGRESS ({inProgressIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={inProgressIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <template if:true={issue.isOverdue}>
+                                                                <span class="tag-overdue">Overdue</span>
+                                                            </template>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={inProgressIssues.length}>
+                                            <p class="no-issues-in-column">No issues in progress.</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- RECENTLY DONE Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title CLOSED">RECENTLY DONE ({recentlyClosedOrDoneIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={recentlyClosedOrDoneIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={recentlyClosedOrDoneIssues.length}>
+                                            <p class="no-issues-in-column">No recently done issues.</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- PRIORITY VIEW -->
+                        <template if:true={isPriorityView}>
+                            <div class="jira-columns-container">
+                                <!-- HIGH Priority Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title PRIORITY_HIGH">HIGH PRIORITY ({highPriorityIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={highPriorityIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <template if:true={issue.isOverdue}>
+                                                                <span class="tag-overdue">Overdue</span>
+                                                            </template>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={highPriorityIssues.length}>
+                                            <p class="no-issues-in-column">No high priority issues.</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- MEDIUM Priority Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title PRIORITY_MEDIUM">MEDIUM PRIORITY ({mediumPriorityIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={mediumPriorityIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <template if:true={issue.isOverdue}>
+                                                                <span class="tag-overdue">Overdue</span>
+                                                            </template>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={mediumPriorityIssues.length}>
+                                            <p class="no-issues-in-column">No medium priority issues.</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- LOW Priority Column -->
+                                <div class="jira-column">
+                                    <h4 class="column-title PRIORITY_LOW">LOW PRIORITY ({lowPriorityIssues.length})</h4>
+                                    <div class="jira-issue-list">
+                                        <template for:each={lowPriorityIssues} for:item="issue">
+                                            <div key={issue.key} class="jira-issue-wrapper">
+                                                <article class="jira-issue-item" onclick={handleItemClick}>
+                                                    <div class="issue-content">
+                                                        <div class="issue-header">
+                                                            <lightning-icon icon-name={issue.iconName} size="x-small" class="issue-type-icon"></lightning-icon>
+                                                            <div class="issue-summary-container">
+                                                                <span class="issue-summary" title={issue.summary}>{issue.key} - {issue.summary}</span>
+                                                                <a href={yourWorkLink} target="_blank" rel="noopener noreferrer" class="your-work-link" onclick={handleSummaryClick}>
+                                                                    View in Your Work
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="status-update-section">
+                                                            <label class="status-label">Status:</label>
+                                                            <select class="status-dropdown" 
+                                                                    data-issue-key={issue.key} 
+                                                                    data-current-status={issue.statusId}
+                                                                    onchange={handleStatusChange}
+                                                                    onclick={preventBubbling}>
+                                                                <option value={issue.statusId} selected>{issue.status}</option>
+                                                                <template for:each={issue.filteredAvailableStatuses} for:item="statusOption">
+                                                                    <option key={statusOption.transitionId} 
+                                                                            value={statusOption.transitionId} 
+                                                                            data-status-id={statusOption.value}>
+                                                                        {statusOption.label}
+                                                                    </option>
+                                                                </template>
+                                                            </select>
+                                                            <template if:true={issue.isUpdating}>
+                                                                <lightning-spinner alternative-text="Updating..." size="x-small" class="status-spinner"></lightning-spinner>
+                                                            </template>
+                                                        </div>
+                                                        <div class="issue-tags">
+                                                            <span class={issue.priorityBadgeClass}>{issue.priority}</span>
+                                                            <template if:true={issue.isOverdue}>
+                                                                <span class="tag-overdue">Overdue</span>
+                                                            </template>
+                                                            <span class="tag-issue-type">{issue.issueType}</span>
+                                                        </div>
+                                                        <template if:true={issue.dueDate}>
+                                                            <div class="issue-footer">
+                                                                <span class="due-date">Due: {issue.dueDate}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </div>
+                                        </template>
+                                        <template if:false={lowPriorityIssues.length}>
+                                            <p class="no-issues-in-column">No low priority issues.</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </div>
+
+    <!-- Create Issue Modal - FIXED VERSION -->
+    <template if:true={showCreateModal}>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open create-issue-modal" aria-labelledby="modal-heading-01">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" 
+                            title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+                        <lightning-icon icon-name="utility:add" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        Create New Jira Issue
+                    </h2>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={isCreatingIssue}>
+                        <div class="slds-is-relative" style="height: 60px;">
+                            <lightning-spinner alternative-text="Creating issue..." size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                    
+                    <template if:false={isCreatingIssue}>
+                        <div class="create-issue-form">
+                            <!-- Project Selection -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-project-select">
+                                    <span class="required-asterisk">*</span>Project
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <select id="create-project-select" class="slds-select" 
+                                            value={selectedProject} onchange={handleProjectChange}>
+                                        <option value="">Select a project...</option>
+                                        <template for:each={availableProjects} for:item="project">
+                                            <option key={project.key} value={project.key}>{project.name}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Issue Type Selection -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-issue-type-select">
+                                    <span class="required-asterisk">*</span>Issue Type
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <select id="create-issue-type-select" class="slds-select" 
+                                            value={selectedIssueType} onchange={handleIssueTypeChange}>
+                                        <option value="">Select issue type...</option>
+                                        <template for:each={availableIssueTypes} for:item="issueType">
+                                            <option key={issueType.id} value={issueType.id}>{issueType.name}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-summary-input">
+                                    <span class="required-asterisk">*</span>Summary
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <input type="text" id="create-summary-input" class="slds-input" 
+                                           placeholder="Enter a brief summary of the issue"
+                                           value={newIssueSummary} onchange={handleSummaryChange} 
+                                           maxlength="255" />
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-description-textarea">Description</label>
+                                <div class="slds-form-element__control">
+                                    <textarea id="create-description-textarea" class="slds-textarea" 
+                                              placeholder="Provide detailed description of the issue"
+                                              value={newIssueDescription} onchange={handleDescriptionChange}
+                                              rows="4"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Priority (Optional) -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-priority-select">
+                                    Priority (Optional - defaults to Medium)
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <select id="create-priority-select" class="slds-select" 
+                                            value={selectedPriority} onchange={handlePriorityChange}>
+                                        <option value="">Medium (Default)</option>
+                                        <template for:each={availablePriorities} for:item="priority">
+                                            <option key={priority.id} value={priority.id}>{priority.name}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Initial Status -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-status-select">Initial Status</label>
+                                <div class="slds-form-element__control">
+                                    <select id="create-status-select" class="slds-select" 
+                                            value={selectedInitialStatus} onchange={handleInitialStatusChange}>
+                                        <option value="to-do">To Do</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="done">Done</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Due Date -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-due-date-input">Due Date</label>
+                                <div class="slds-form-element__control">
+                                    <input type="date" id="create-due-date-input" class="slds-input" 
+                                           value={newIssueDueDate} onchange={handleDueDateChange} />
+                                </div>
+                            </div>
+
+                            <!-- Assignee -->
+                            <div class="slds-form-element slds-m-bottom_medium">
+                                <label class="slds-form-element__label" for="create-assignee-select">
+                                    Assignee (defaults to you)
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <select id="create-assignee-select" class="slds-select" 
+                                            value={selectedAssignee} onchange={handleAssigneeChange}>
+                                        <option value="">Assign to me (Default)</option>
+                                        <template for:each={availableAssignees} for:item="assignee">
+                                            <option key={assignee.accountId} value={assignee.accountId}>{assignee.displayName}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Cancel</button>
+                    <button class="slds-button slds-button_brand" onclick={handleSaveIssue} 
+                            disabled={isCreateButtonDisabled}>
+                        <template if:true={isCreatingIssue}>
+                            Creating...
+                        </template>
+                        <template if:false={isCreatingIssue}>
+                            Create Issue
+                        </template>
+                    </button>
+                </footer>
+            </div>
+        </section>
+    </template>
+</template>

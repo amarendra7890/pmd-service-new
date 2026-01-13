@@ -1,0 +1,29 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 06-25-2025
+  @last modified by  : AtifAhmedShariff
+-->
+<template>
+    <div class="chatbot-table-container">
+      <table class="modern-table">
+        <thead class="modern-table-header">
+          <tr>
+            <template for:each={columns} for:item="column">
+              <th key={column}>{column}</th>
+            </template>
+          </tr>
+        </thead>
+        <tbody>
+          <template for:each={tableData} for:item="row">
+            <tr key={row.id}>
+              <template for:each={row} for:item="data">
+              <td key={data}>{data}</td>
+            </template>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </template>

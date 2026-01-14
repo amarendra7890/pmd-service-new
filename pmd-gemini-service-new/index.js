@@ -129,13 +129,12 @@ app.post("/analyze", async (req, res) => {
         
         console.log(`🚀 Executing PMD on batch folder ${tmpDir} (${classes.length} files)`);
         
-        // Add categories to ensure rules are actually run
+        // Run PMD without category filter for faster execution
         const pmdOutput = await exec("sf", [
             "scanner", "run", 
             "--engine", "pmd", 
             "--format", "json", 
-            "--target", tmpDir,
-            "--category", "Design,Best Practices,Performance,Security,Error Prone"
+            "--target", tmpDir
         ]);
         
         console.log("📝 Raw PMD Output:", pmdOutput); // Debug log
@@ -198,7 +197,7 @@ app.post("/fix", async (req, res) => {
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
         const fullPrompt = `You are an expert Salesforce Apex developer. 
 
@@ -230,7 +229,7 @@ FORMAT YOUR RESPONSE AS:
         
         res.json({ 
             patch: suggestion,
-            model: "gemini-1.5-flash"
+            model: "gemini-2.0-flash-exp"
         });
         
     } catch (error) {

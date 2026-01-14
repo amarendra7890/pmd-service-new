@@ -198,7 +198,7 @@ app.post("/fix", async (req, res) => {
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
         const fullPrompt = `You are an expert Salesforce Apex developer. 
 
@@ -230,7 +230,7 @@ FORMAT YOUR RESPONSE AS:
         
         res.json({ 
             patch: suggestion,
-            model: "gemini-1.5-flash"
+            model: "gemini-pro"
         });
         
     } catch (error) {

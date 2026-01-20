@@ -3,32 +3,39 @@ import express from "express";
 import { execFile } from "child_process";
 import { v4 as uuid } from "uuid";
 import fs from "fs/promises";
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from "@google/genai";
 import path from 'path';
 
 const app = express();
-app.use(express.json({ limit: "50mb" })); // Increased limit for batch analysis
+app.use(express.json({ limit: "50mb" }));
 
-// Initialize Gemini AI with optimized settings
-let genAI;
+// Initialize Gemini AI with new SDK
+let ai;
 const initializeGemini = () => {
     const apiKey = process.env.GEMINI_API_KEY;
+    console.log("🔑 Checking API Key...");
+    console.log("API Key present:", !!apiKey);
+    console.log("API Key length:", apiKey ? apiKey.length : 0);
+    
     if (apiKey) {
-        genAI = new GoogleGenerativeAI(apiKey);
-        console.log("✅ Gemini AI initialized successfully");
+        try {
+            ai = new GoogleGenAI({ apiKey });
+            console.log("✅ Gemini AI initialized successfully");
+        } catch (error) {
+            console.error("❌ Failed to initialize Gemini:", error.message);
+        }
     } else {
         console.log("⚠️  Gemini API key not found - AI suggestions will be disabled");
+        console.log("⚠️  Make sure GEMINI_API_KEY is set in your .env file");
     }
 };
 
-// Initialize Gemini on startup
 initializeGemini();
 
-// Health check endpoint with PMD test
+// Health check endpoint
 app.get("/health", async (req, res) => {
     let pmdStatus = 'unknown';
     try {
-        // Test if PMD scanner is available
         await exec("sf", ["scanner", "--help"]);
         pmdStatus = 'available';
     } catch (error) {
@@ -38,13 +45,13 @@ app.get("/health", async (req, res) => {
     res.json({ 
         status: "ok", 
         message: "PMD-Gemini Service is running",
-        geminiAvailable: !!genAI,
+        geminiAvailable: !!ai,
         pmdStatus: pmdStatus,
         timestamp: new Date().toISOString()
     });
 });
 
-// CORS headers for Salesforce
+// CORS headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -57,7 +64,7 @@ app.use((req, res, next) => {
     }
 });
 
-// POST /run - Single file PMD Scanning endpoint (Used by DashboardController)
+// POST /run - Single file PMD scanning
 app.post("/run", async (req, res) => {
     req.setTimeout(55000); 
     res.setTimeout(55000);
@@ -77,7 +84,6 @@ app.post("/run", async (req, res) => {
         const filePath = path.join(tmpDir, filename);
         
         await fs.writeFile(filePath, source, "utf8");
-        
         console.log(`🚀 Executing PMD on ${filePath}`);
         
         const pmdOutput = await exec("sf", [
@@ -103,14 +109,14 @@ app.post("/run", async (req, res) => {
     }
 });
 
-// POST /analyze - Batch PMD Scanning endpoint (Used by AFD_PMDAnalysis)
+// POST /analyze - Batch PMD scanning
 app.post("/analyze", async (req, res) => {
-    req.setTimeout(120000); // 2 minutes timeout for batch
+    req.setTimeout(120000);
     res.setTimeout(120000);
     
     try {
         console.log("🔍 Received batch PMD scan request");
-        const { classes } = req.body; // Expects { classes: [{ name, source }] }
+        const { classes } = req.body;
         
         if (!classes || !Array.isArray(classes)) {
             return res.status(400).json({ 
@@ -121,7 +127,6 @@ app.post("/analyze", async (req, res) => {
         const tmpDir = `/tmp/${uuid()}`;
         await fs.mkdir(tmpDir, { recursive: true });
         
-        // Write all files
         for (const cls of classes) {
             const fileName = cls.name.endsWith('.cls') ? cls.name : `${cls.name}.cls`;
             await fs.writeFile(path.join(tmpDir, fileName), cls.source, "utf8");
@@ -129,7 +134,6 @@ app.post("/analyze", async (req, res) => {
         
         console.log(`🚀 Executing PMD on batch folder ${tmpDir} (${classes.length} files)`);
         
-        // Run PMD without category filter for faster execution
         const pmdOutput = await exec("sf", [
             "scanner", "run", 
             "--engine", "pmd", 
@@ -137,11 +141,9 @@ app.post("/analyze", async (req, res) => {
             "--target", tmpDir
         ]);
         
-        console.log("📝 Raw PMD Output:", pmdOutput); // Debug log
-        
+        console.log("📝 Raw PMD Output:", pmdOutput);
         await fs.rm(tmpDir, { recursive: true, force: true });
         
-        // Parse and transform results to match AFD_PMDAnalysis expectation
         let rawResults = [];
         try {
             if (pmdOutput.trim()) {
@@ -151,13 +153,10 @@ app.post("/analyze", async (req, res) => {
             console.error("Failed to parse PMD output", e);
         }
         
-        // Transform: Flat list of violations with 'className' property
         const violations = [];
         for (const engineResult of rawResults) {
-            // Extract class name from file path
-            // engineResult.fileName is like /tmp/uuid/MyClass.cls
             const fullPath = engineResult.fileName;
-            const baseName = path.basename(fullPath); // MyClass.cls
+            const baseName = path.basename(fullPath);
             const className = baseName.replace('.cls', '');
             
             for (const v of (engineResult.violations || [])) {
@@ -179,10 +178,9 @@ app.post("/analyze", async (req, res) => {
     }
 });
 
-// POST /fix - AI Fix Suggestions endpoint (OPTIMIZED FOR SPEED)
+// POST /fix - AI Fix Suggestions (NEW SDK)
 app.post("/fix", async (req, res) => {
-    // Reduced timeout for faster response
-    req.setTimeout(30000); // 30 seconds
+    req.setTimeout(30000);
     res.setTimeout(30000);
     
     try {
@@ -195,24 +193,12 @@ app.post("/fix", async (req, res) => {
             });
         }
 
-        if (!genAI) {
+        if (!ai) {
             return res.status(503).json({ 
                 error: "Gemini AI service not available" 
             });
         }
 
-        // Use faster gemini-1.5-flash model with optimized generation config
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            generationConfig: {
-                temperature: 0.3,        // Lower = faster, more focused
-                topK: 20,                // Reduce search space
-                topP: 0.8,               // More deterministic
-                maxOutputTokens: 500,    // Limit response length for speed
-            }
-        });
-
-        // Shorter, more focused prompt for faster processing
         const fullPrompt = `Fix this Apex code PMD violation: "${prompt}"
 
 CODE:
@@ -229,23 +215,24 @@ Keep response under 200 words.`;
         console.log("⏱️  Sending request to Gemini...");
         const startTime = Date.now();
         
-        const result = await model.generateContent(fullPrompt);
-        const response = await result.response;
-        const suggestion = response.text();
+        // Using new SDK syntax with working model
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash", // Using fastest stable model
+            contents: fullPrompt
+        });
         
         const duration = Date.now() - startTime;
         console.log(`✅ Gemini response received in ${duration}ms`);
         
         res.json({ 
-            patch: suggestion,
-            model: "gemini-1.5-flash",
+            patch: response.text,
+            model: "gemini-2.5-flash",
             responseTime: `${duration}ms`
         });
         
     } catch (error) {
         console.error("❌ AI suggestion error:", error);
         
-        // Better error handling
         if (error.message?.includes('quota')) {
             return res.status(429).json({ 
                 error: "API quota exceeded. Please try again in a few moments.",
@@ -259,13 +246,52 @@ Keep response under 200 words.`;
     }
 });
 
+// Test endpoint to check available models
+app.get("/test-models", async (req, res) => {
+    const modelsToTest = [
+        'gemini-3-flash-preview',
+        'gemini-2.5-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro'
+    ];
+
+    const results = [];
+
+    for (const modelName of modelsToTest) {
+        try {
+            console.log(`Testing ${modelName}...`);
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: "Say hi"
+            });
+            
+            results.push({
+                model: modelName,
+                status: '✅ WORKS',
+                sample: response.text.substring(0, 30)
+            });
+            console.log(`✅ ${modelName} works!`);
+        } catch (error) {
+            results.push({
+                model: modelName,
+                status: '❌ FAILED',
+                error: error.message.substring(0, 100)
+            });
+            console.log(`❌ ${modelName} failed: ${error.message}`);
+        }
+    }
+
+    res.json({ 
+        timestamp: new Date().toISOString(),
+        results 
+    });
+});
+
 // Utility function to execute shell commands
 function exec(bin, args) {
     return new Promise((resolve, reject) => {
         execFile(bin, args, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
             if (error) {
-                // sf scanner might exit with code 4 if violations found
-                // If we get stdout, resolve it as success
                 if (stdout) {
                     resolve(stdout);
                 } else {
@@ -281,10 +307,10 @@ function exec(bin, args) {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`🚀 PMD-Gemini Service running on port ${PORT}`);
-    console.log(`ℹ️  Service Version: 1.2 (Speed Optimized)`);
+    console.log(`ℹ️  Service Version: 2.0 (New Gemini SDK)`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔗 Test models: http://localhost:${PORT}/test-models`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT', () => process.exit(0));

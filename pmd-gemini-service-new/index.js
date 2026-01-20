@@ -9,7 +9,7 @@ import path from 'path';
 const app = express();
 app.use(express.json({ limit: "50mb" })); // Increased limit for batch analysis
 
-// Initialize Gemini AI
+// Initialize Gemini AI with optimized settings
 let genAI;
 const initializeGemini = () => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -179,8 +179,12 @@ app.post("/analyze", async (req, res) => {
     }
 });
 
-// POST /fix - AI Fix Suggestions endpoint
+// POST /fix - AI Fix Suggestions endpoint (OPTIMIZED FOR SPEED)
 app.post("/fix", async (req, res) => {
+    // Reduced timeout for faster response
+    req.setTimeout(30000); // 30 seconds
+    res.setTimeout(30000);
+    
     try {
         console.log("🤖 Received AI fix suggestion request");
         const { prompt, code } = req.body;
@@ -197,44 +201,61 @@ app.post("/fix", async (req, res) => {
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        // Use faster gemini-1.5-flash model with optimized generation config
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                temperature: 0.3,        // Lower = faster, more focused
+                topK: 20,                // Reduce search space
+                topP: 0.8,               // More deterministic
+                maxOutputTokens: 500,    // Limit response length for speed
+            }
+        });
 
-        const fullPrompt = `You are an expert Salesforce Apex developer. 
+        // Shorter, more focused prompt for faster processing
+        const fullPrompt = `Fix this Apex code PMD violation: "${prompt}"
 
-TASK: Fix the following Apex code to resolve this PMD violation: "${prompt}"
-
-CODE TO FIX:
+CODE:
 \`\`\`apex
 ${code}
 \`\`\`
 
-REQUIREMENTS:
-1. Provide the corrected code snippet
-2. Explain what was wrong and why the fix works
-3. Keep the solution concise
-4. Maintain the original functionality
+Provide:
+1. Fixed code (concise)
+2. Brief explanation (1-2 sentences)
 
-FORMAT YOUR RESPONSE AS:
-**Fixed Code:**
-\`\`\`apex
-[corrected code here]
-\`\`\`
+Keep response under 200 words.`;
 
-**Explanation:**
-[Brief explanation]`;
-
+        console.log("⏱️  Sending request to Gemini...");
+        const startTime = Date.now();
+        
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         const suggestion = response.text();
         
+        const duration = Date.now() - startTime;
+        console.log(`✅ Gemini response received in ${duration}ms`);
+        
         res.json({ 
             patch: suggestion,
-            model: "gemini-2.0-flash-exp"
+            model: "gemini-1.5-flash",
+            responseTime: `${duration}ms`
         });
         
     } catch (error) {
         console.error("❌ AI suggestion error:", error);
-        res.status(500).json({ error: error.message });
+        
+        // Better error handling
+        if (error.message?.includes('quota')) {
+            return res.status(429).json({ 
+                error: "API quota exceeded. Please try again in a few moments.",
+                details: "Rate limit reached"
+            });
+        }
+        
+        res.status(500).json({ 
+            error: error.message || "AI service error"
+        });
     }
 });
 
@@ -243,21 +264,12 @@ function exec(bin, args) {
     return new Promise((resolve, reject) => {
         execFile(bin, args, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
             if (error) {
-                // Warning: sf scanner writes some warnings to stderr, which might trigger this
-                // But typically fatal errors are here. 
-                // However, successfully finding violations acts as success exit code (usually 0 unless customized).
-                // If scanner fails (exit code != 0), we reject.
-                // Note: sf scanner might exit with code 4 or similar if violations found.
-                // We should check stdout first.
-                // Actually, sf scanner exit codes: 0=No violations, 4=Violations found. 
-                // So "error" might be present even if it worked.
-                // We should resolve stdout if it's there.
-                
-                // For simplicity in this wrapper, if we get stdout, resolve it.
+                // sf scanner might exit with code 4 if violations found
+                // If we get stdout, resolve it as success
                 if (stdout) {
-                     resolve(stdout);
+                    resolve(stdout);
                 } else {
-                     reject(new Error(stderr || error.message));
+                    reject(new Error(stderr || error.message));
                 }
             } else {
                 resolve(stdout);
@@ -269,7 +281,7 @@ function exec(bin, args) {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`🚀 PMD-Gemini Service running on port ${PORT}`);
-    console.log(`ℹ️  Service Version: 1.1 (Categories Enabled)`);
+    console.log(`ℹ️  Service Version: 1.2 (Speed Optimized)`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
 });
 

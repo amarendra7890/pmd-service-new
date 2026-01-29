@@ -22,7 +22,7 @@ const PMD_RULESETS = [
 
 const PMD_BINARY = "/opt/pmd/bin/pmd";
 
-// AI Init
+// AI Initialization
 let ai;
 const initializeGemini = () => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -43,10 +43,13 @@ initializeGemini();
 app.get("/health", async (req, res) => {
     let pmdStatus = 'unknown';
     try {
+        console.log("Health check: Testing PMD binary...");
         const version = await exec(PMD_BINARY, ["--version"]);
         pmdStatus = `available (${version.trim()})`;
+        console.log("Health check: PMD is working.");
     } catch (error) {
-        pmdStatus = 'not available: ' + error.message;
+        console.error("Health check failed:", error);
+        pmdStatus = 'not available: ' + (error.stderr || error.message);
     }
     res.json({ 
         status: "ok", 
@@ -64,7 +67,7 @@ app.use((req, res, next) => {
     else next();
 });
 
-// POST /analyze - Batch Scan (Fixed for LWC)
+// POST /analyze - Batch Scan
 app.post("/analyze", async (req, res) => {
     req.setTimeout(120000);
     
@@ -78,6 +81,7 @@ app.post("/analyze", async (req, res) => {
 
         const tmpDir = `/tmp/${uuid()}`;
         await fs.mkdir(tmpDir, { recursive: true });
+        console.log(`📁 Created temp dir: ${tmpDir}`);
         
         // Write files
         for (const cls of classes) {
@@ -89,6 +93,7 @@ app.post("/analyze", async (req, res) => {
         
         let pmdOutput = "";
         try {
+            // Running PMD
             pmdOutput = await exec(PMD_BINARY, [
                 "check",
                 "--dir", tmpDir,
@@ -96,51 +101,65 @@ app.post("/analyze", async (req, res) => {
                 "--rulesets", PMD_RULESETS,
                 "--no-cache"
             ]);
+            console.log("✅ PMD execution completed successfully (Exit Code 0).");
         } catch (err) {
-            if (err.code === 4 && err.stdout) {
+            // Check for exit code 4 (Violations found) which is NOT a crash
+            if (err.code === 4) {
+                console.log("⚠️ PMD finished with violations (Exit Code 4). This is normal.");
                 pmdOutput = err.stdout;
             } else {
-                throw err;
+                console.error("❌ PMD CRASHED OR FAILED!");
+                console.error("Exit Code:", err.code);
+                console.error("STDERR (Errors):", err.stderr);
+                console.error("STDOUT (Output):", err.stdout);
+                throw new Error(`PMD Failed: ${err.stderr || err.message}`);
             }
         }
         
+        // Clean up
         await fs.rm(tmpDir, { recursive: true, force: true });
+        console.log("🧹 Temp files cleaned up.");
         
         let violations = [];
         try {
-            if (pmdOutput.trim()) {
+            if (pmdOutput && pmdOutput.trim()) {
+                console.log("📊 Parsing PMD JSON output...");
                 const parsed = JSON.parse(pmdOutput);
                 
                 if (parsed.files) {
                     parsed.files.forEach(file => {
-                        // Clean up filename (remove /tmp/ path and .cls extension)
                         const baseName = path.basename(file.filename).replace('.cls', '');
                         
-                        file.violations.forEach(v => {
-                            // --- FIX: MAP FIELDS EXACTLY TO LWC COLUMNS ---
+                        file.violations.forEach((v, index) => {
                             violations.push({
-                                id: `${baseName}-${v.beginline}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID for key-field
-                                className: baseName,        // Matches 'fieldName': 'className'
-                                line: v.beginline,          // Matches 'fieldName': 'line' (was beginline)
-                                rule: v.rule,               // Matches 'fieldName': 'rule'
-                                message: v.description,     // Matches 'fieldName': 'message' (was description)
-                                severity: v.priority,       // Matches 'fieldName': 'severity' (was priority)
+                                id: `${baseName}-${v.beginline}-${index}`, 
+                                className: baseName,        
+                                line: v.beginline,          
+                                rule: v.rule,               
+                                message: v.description,     
+                                severity: v.priority,       
                                 isFixDisabled: false
                             });
                         });
                     });
                 }
+                console.log(`✅ Found ${violations.length} violations.`);
+            } else {
+                console.log("✅ No output from PMD (No violations found).");
             }
         } catch (e) {
-            console.error("JSON Parse Error:", e);
+            console.error("❌ JSON Parse Error:", e);
+            console.error("Raw Output was:", pmdOutput);
         }
         
-        // --- FIX: RETURN ARRAY DIRECTLY (Not wrapped in object) ---
         res.json(violations);
         
     } catch (error) {
-        console.error("❌ Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("❌ Server Error Handler:", error);
+        res.status(500).json({ 
+            error: error.message,
+            details: "Check server logs for STDERR output"
+        });
     }
 });
 
@@ -169,12 +188,23 @@ Provide: 1. Fixed code (concise). 2. Brief explanation. Keep under 200 words.`;
     }
 });
 
-// Utility
+// ---------------------------------------------------------
+// DEBUGGING UTILITY: EXEC
+// ---------------------------------------------------------
 function exec(bin, args) {
     return new Promise((resolve, reject) => {
-        execFile(bin, args, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        console.log(`[DEBUG] Spawning process: ${bin} ${args.join(' ')}`);
+        
+        // Added 60 second timeout to prevent hanging forever
+        execFile(bin, args, { maxBuffer: 10 * 1024 * 1024, timeout: 60000 }, (error, stdout, stderr) => {
+            if (stderr) {
+                console.log(`[DEBUG] Process STDERR: ${stderr}`); // Log warnings/errors from Java
+            }
+            
             if (error) {
+                // Attach stdout/stderr to error object so we can use it later
                 error.stdout = stdout; 
+                error.stderr = stderr;
                 reject(error);
             } else {
                 resolve(stdout);

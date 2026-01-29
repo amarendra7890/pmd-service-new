@@ -7,15 +7,34 @@ import { GoogleGenAI } from "@google/genai";
 import path from 'path';
 
 const app = express();
+// Increase limit for large files
 app.use(express.json({ limit: "50mb" }));
 
-// Initialize Gemini AI with new SDK
+// ------------------------------------------------------------------
+// CONFIGURATION
+// ------------------------------------------------------------------
+
+// Define the standard PMD Apex rulesets to use
+// Using the "category/..." syntax required by PMD 6/7
+const PMD_RULESETS = [
+    "category/apex/design.xml",
+    "category/apex/bestpractices.xml",
+    "category/apex/errorprone.xml",
+    "category/apex/performance.xml",
+    "category/apex/security.xml",
+    "category/apex/documentation.xml",
+    "category/apex/codestyle.xml"
+].join(",");
+
+const PMD_BINARY = "/opt/pmd/bin/pmd";
+
+// ------------------------------------------------------------------
+// AI INITIALIZATION
+// ------------------------------------------------------------------
 let ai;
 const initializeGemini = () => {
     const apiKey = process.env.GEMINI_API_KEY;
     console.log("🔑 Checking API Key...");
-    console.log("API Key present:", !!apiKey);
-    console.log("API Key length:", apiKey ? apiKey.length : 0);
     
     if (apiKey) {
         try {
@@ -26,25 +45,30 @@ const initializeGemini = () => {
         }
     } else {
         console.log("⚠️  Gemini API key not found - AI suggestions will be disabled");
-        console.log("⚠️  Make sure GEMINI_API_KEY is set in your .env file");
     }
 };
 
 initializeGemini();
 
+// ------------------------------------------------------------------
+// ROUTES
+// ------------------------------------------------------------------
+
 // Health check endpoint
 app.get("/health", async (req, res) => {
     let pmdStatus = 'unknown';
     try {
-        await exec("sf", ["scanner", "--help"]);
-        pmdStatus = 'available';
+        // Check if native PMD is responding
+        const version = await exec(PMD_BINARY, ["--version"]);
+        pmdStatus = `available (${version.trim()})`;
     } catch (error) {
         pmdStatus = 'not available: ' + error.message;
     }
 
     res.json({ 
         status: "ok", 
-        message: "PMD-Gemini Service is running",
+        message: "PMD-Gemini Native Service is running",
+        mode: "High Performance (Native PMD)",
         geminiAvailable: !!ai,
         pmdStatus: pmdStatus,
         timestamp: new Date().toISOString()
@@ -56,12 +80,8 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-    } else {
-        next();
-    }
+    if (req.method === 'OPTIONS') res.sendStatus(200);
+    else next();
 });
 
 // POST /run - Single file PMD scanning
@@ -70,13 +90,11 @@ app.post("/run", async (req, res) => {
     res.setTimeout(55000);
     
     try {
-        console.log("🔍 Received single file PMD scan request");
+        console.log("🔍 Received single file PMD scan request (Native Mode)");
         const { filename, source } = req.body;
         
         if (!filename || !source) {
-            return res.status(400).json({ 
-                error: "Both 'filename' and 'source' fields are required" 
-            });
+            return res.status(400).json({ error: "Both 'filename' and 'source' fields are required" });
         }
 
         const tmpDir = `/tmp/${uuid()}`;
@@ -84,21 +102,60 @@ app.post("/run", async (req, res) => {
         const filePath = path.join(tmpDir, filename);
         
         await fs.writeFile(filePath, source, "utf8");
-        console.log(`🚀 Executing PMD on ${filePath}`);
+        console.log(`🚀 Executing Native PMD on ${filePath}`);
         
-        const pmdOutput = await exec("sf", [
-            "scanner", "run", "--engine", "pmd", "--format", "json", "--target", filePath
-        ]);
+        // Execute PMD
+        // exit code 4 = violations found (normal), exit code 1 = error
+        let pmdOutput = "";
+        try {
+            pmdOutput = await exec(PMD_BINARY, [
+                "check",
+                "--dir", filePath,
+                "--format", "json",
+                "--rulesets", PMD_RULESETS,
+                "--no-cache"
+            ]);
+        } catch (err) {
+            // Check for exit code 4 (Violations found), which is success for us
+            if (err.code === 4 && err.stdout) {
+                pmdOutput = err.stdout;
+            } else {
+                throw err; // Real error
+            }
+        }
         
         await fs.rm(tmpDir, { recursive: true, force: true });
         
+        // Transform Native PMD JSON to match what your LWC expects (Array of files)
         let result = [];
         try {
             if (pmdOutput.trim()) {
-                result = JSON.parse(pmdOutput);
+                const rawJson = JSON.parse(pmdOutput);
+                
+                // Native PMD returns { "files": [...] }
+                // We map this to maintain compatibility with your previous structure
+                if (rawJson.files) {
+                    result = rawJson.files.map(f => {
+                        return {
+                            fileName: f.filename,
+                            violations: f.violations.map(v => ({
+                                // Map native PMD fields to SF Scanner fields if needed, 
+                                // or just pass them through. 
+                                // Your LWC likely needs: line, rule, message/description
+                                line: v.beginline,
+                                endLine: v.endline,
+                                ruleName: v.rule,       // Native uses 'rule', SF uses 'ruleName'
+                                message: v.description, // Native uses 'description', SF uses 'message'
+                                severity: v.priority,
+                                category: v.ruleset
+                            }))
+                        };
+                    });
+                }
             }
         } catch (e) {
             console.error("Failed to parse PMD output", e);
+            console.error("Raw Output:", pmdOutput);
         }
         
         res.json(result);
@@ -115,13 +172,11 @@ app.post("/analyze", async (req, res) => {
     res.setTimeout(120000);
     
     try {
-        console.log("🔍 Received batch PMD scan request");
+        console.log("🔍 Received batch PMD scan request (Native Mode)");
         const { classes } = req.body;
         
         if (!classes || !Array.isArray(classes)) {
-            return res.status(400).json({ 
-                error: "Invalid payload: 'classes' array is required" 
-            });
+            return res.status(400).json({ error: "Invalid payload: 'classes' array is required" });
         }
 
         const tmpDir = `/tmp/${uuid()}`;
@@ -132,42 +187,51 @@ app.post("/analyze", async (req, res) => {
             await fs.writeFile(path.join(tmpDir, fileName), cls.source, "utf8");
         }
         
-        console.log(`🚀 Executing PMD on batch folder ${tmpDir} (${classes.length} files)`);
+        console.log(`🚀 Executing Native PMD on batch folder ${tmpDir} (${classes.length} files)`);
         
-        const pmdOutput = await exec("sf", [
-            "scanner", "run", 
-            "--engine", "pmd", 
-            "--format", "json", 
-            "--target", tmpDir
-        ]);
+        let pmdOutput = "";
+        try {
+            pmdOutput = await exec(PMD_BINARY, [
+                "check",
+                "--dir", tmpDir,
+                "--format", "json",
+                "--rulesets", PMD_RULESETS,
+                "--no-cache"
+            ]);
+        } catch (err) {
+            if (err.code === 4 && err.stdout) {
+                pmdOutput = err.stdout;
+            } else {
+                throw err;
+            }
+        }
         
-        console.log("📝 Raw PMD Output:", pmdOutput);
         await fs.rm(tmpDir, { recursive: true, force: true });
         
-        let rawResults = [];
+        let violations = [];
         try {
             if (pmdOutput.trim()) {
-                rawResults = JSON.parse(pmdOutput);
+                const parsed = JSON.parse(pmdOutput);
+                
+                // Flatten results for your "violations" response format
+                if (parsed.files) {
+                    parsed.files.forEach(file => {
+                        const baseName = path.basename(file.filename).replace('.cls', '');
+                        
+                        file.violations.forEach(v => {
+                            violations.push({
+                                rule: v.rule,
+                                description: v.description,
+                                beginline: v.beginline,
+                                priority: v.priority,
+                                className: baseName
+                            });
+                        });
+                    });
+                }
             }
         } catch (e) {
             console.error("Failed to parse PMD output", e);
-        }
-        
-        const violations = [];
-        for (const engineResult of rawResults) {
-            const fullPath = engineResult.fileName;
-            const baseName = path.basename(fullPath);
-            const className = baseName.replace('.cls', '');
-            
-            for (const v of (engineResult.violations || [])) {
-                violations.push({
-                    rule: v.ruleName,
-                    description: v.message,
-                    beginline: v.line,
-                    priority: v.severity,
-                    className: className
-                });
-            }
         }
         
         res.json({ violations: violations });
@@ -178,25 +242,20 @@ app.post("/analyze", async (req, res) => {
     }
 });
 
-// POST /fix - AI Fix Suggestions (NEW SDK)
+// POST /fix - AI Fix Suggestions
 app.post("/fix", async (req, res) => {
     req.setTimeout(30000);
-    res.setTimeout(30000);
     
     try {
         console.log("🤖 Received AI fix suggestion request");
         const { prompt, code } = req.body;
         
         if (!prompt || !code) {
-            return res.status(400).json({ 
-                error: "Both 'prompt' and 'code' fields are required" 
-            });
+            return res.status(400).json({ error: "Both 'prompt' and 'code' fields are required" });
         }
 
         if (!ai) {
-            return res.status(503).json({ 
-                error: "Gemini AI service not available" 
-            });
+            return res.status(503).json({ error: "Gemini AI service not available" });
         }
 
         const fullPrompt = `Fix this Apex code PMD violation: "${prompt}"
@@ -212,12 +271,9 @@ Provide:
 
 Keep response under 200 words.`;
 
-        console.log("⏱️  Sending request to Gemini...");
         const startTime = Date.now();
-        
-        // Using new SDK syntax with working model
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash", // Using fastest stable model
+            model: "gemini-2.5-flash",
             contents: fullPrompt
         });
         
@@ -232,71 +288,22 @@ Keep response under 200 words.`;
         
     } catch (error) {
         console.error("❌ AI suggestion error:", error);
-        
         if (error.message?.includes('quota')) {
-            return res.status(429).json({ 
-                error: "API quota exceeded. Please try again in a few moments.",
-                details: "Rate limit reached"
-            });
+            return res.status(429).json({ error: "API quota exceeded." });
         }
-        
-        res.status(500).json({ 
-            error: error.message || "AI service error"
-        });
+        res.status(500).json({ error: error.message || "AI service error" });
     }
 });
 
-// Test endpoint to check available models
-app.get("/test-models", async (req, res) => {
-    const modelsToTest = [
-        'gemini-3-flash-preview',
-        'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro'
-    ];
-
-    const results = [];
-
-    for (const modelName of modelsToTest) {
-        try {
-            console.log(`Testing ${modelName}...`);
-            const response = await ai.models.generateContent({
-                model: modelName,
-                contents: "Say hi"
-            });
-            
-            results.push({
-                model: modelName,
-                status: '✅ WORKS',
-                sample: response.text.substring(0, 30)
-            });
-            console.log(`✅ ${modelName} works!`);
-        } catch (error) {
-            results.push({
-                model: modelName,
-                status: '❌ FAILED',
-                error: error.message.substring(0, 100)
-            });
-            console.log(`❌ ${modelName} failed: ${error.message}`);
-        }
-    }
-
-    res.json({ 
-        timestamp: new Date().toISOString(),
-        results 
-    });
-});
-
-// Utility function to execute shell commands
+// Utility: Execute shell commands with specialized error handling for PMD
 function exec(bin, args) {
     return new Promise((resolve, reject) => {
         execFile(bin, args, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+            // We pass the error object back to the caller to handle exit codes (like 4)
             if (error) {
-                if (stdout) {
-                    resolve(stdout);
-                } else {
-                    reject(new Error(stderr || error.message));
-                }
+                // Attach stdout to error object so caller can retrieve it
+                error.stdout = stdout; 
+                reject(error);
             } else {
                 resolve(stdout);
             }
@@ -307,9 +314,7 @@ function exec(bin, args) {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`🚀 PMD-Gemini Service running on port ${PORT}`);
-    console.log(`ℹ️  Service Version: 2.0 (New Gemini SDK)`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔗 Test models: http://localhost:${PORT}/test-models`);
+    console.log(`⚡ Mode: Native PMD High Performance`);
 });
 
 process.on('SIGTERM', () => process.exit(0));
